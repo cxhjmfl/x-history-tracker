@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>X时间线记录器 - 侧边栏</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    /* 侧边栏专用样式 */
+    .sidepanel-container {
+      max-width: 100%;
+      padding: 15px;
+    }
+    
+    .sidepanel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid #333;
+    }
+    
+    .sidepanel-header h1 {
+      font-size: 18px;
+      margin: 0;
+    }
+    
+    .view-toggle {
+      display: flex;
+      gap: 5px;
+    }
+    
+    .view-btn {
+      background: #1d9bf0;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 20px;
+      cursor: pointer;
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      transition: all 0.2s;
+    }
+    
+    .view-btn:hover {
+      background: #1a8cd8;
+    }
+    
+    .view-btn.secondary {
+      background: #333;
+    }
+    
+    .view-btn.secondary:hover {
+      background: #444;
+    }
+    
+    /* 侧边栏更大的内容区域 */
+    .sidepanel-container .tabs {
+      margin-bottom: 15px;
+    }
+    
+    .sidepanel-container .timeline-list {
+      max-height: calc(100vh - 300px);
+      overflow-y: auto;
+    }
+    
+    .sidepanel-container .stat-card {
+      padding: 20px;
+    }
+    
+    .sidepanel-container .stat-value {
+      font-size: 28px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container sidepanel-container">
+    <div class="sidepanel-header">
+      <h1>📊 X时间线记录器</h1>
+      <div class="view-toggle">
+        <button id="open-popup" class="view-btn secondary" title="切换为小窗口">
+          <span>📱</span>
+          <span>小窗口</span>
+        </button>
+        <button id="refresh-sidepanel" class="view-btn" title="刷新数据">
+          <span>🔄</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="status-badge" id="status-badge">🔴 未记录</div>
+
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="timeline">时间线</button>
+      <button class="tab-btn" data-tab="stats">统计</button>
+      <button class="tab-btn" data-tab="algorithm">算法分析</button>
+    </div>
+
+    <!-- 时间线记录 -->
+    <div class="tab-content" id="timeline-tab">
+      <div class="timeline-filter" style="display: none;">
+        <button class="filter-btn active" data-filter="for-you">为你推荐</button>
+      </div>
+      
+      <div class="date-filter">
+        <div class="date-inputs">
+          <input type="date" id="start-date" class="date-input" placeholder="开始日期">
+          <span class="date-separator">至</span>
+          <input type="date" id="end-date" class="date-input" placeholder="结束日期">
+        </div>
+        <div class="date-presets">
+          <button class="preset-btn" data-days="1">今天</button>
+          <button class="preset-btn" data-days="7">近7天</button>
+          <button class="preset-btn" data-days="30">近30天</button>
+          <button class="preset-btn" id="clear-date-filter">清除</button>
+        </div>
+      </div>
+      
+      <div class="timeline-stats-bar">
+        <div class="timeline-stat">
+          <span class="stat-number" id="timeline-total">0</span>
+          <span class="stat-label">已记录</span>
+        </div>
+        <div class="timeline-stat">
+          <span class="stat-number" id="timeline-promoted">0</span>
+          <span class="stat-label">推广</span>
+        </div>
+        <div class="timeline-stat">
+          <span class="stat-number" id="timeline-session">0</span>
+          <span class="stat-label">本次</span>
+        </div>
+      </div>
+
+      <div id="timeline-list" class="timeline-list">
+        <div class="empty-state">
+          <p>访问 X.com 开始记录</p>
+          <p class="hint">插件会自动记录"为你推荐"时间线中出现的所有推文</p>
+        </div>
+      </div>
+      
+      <div class="timeline-actions">
+        <button id="export-btn" class="btn btn-primary">📥 导出数据</button>
+        <button id="clear-timeline-btn" class="btn btn-danger">🗑️ 清除</button>
+      </div>
+    </div>
+
+    <!-- 统计 -->
+    <div class="tab-content hidden" id="stats-tab">
+      <div class="timeline-comparison">
+        <h3>时间线对比</h3>
+        <div class="comparison-grid">
+          <div class="comparison-card for-you">
+            <div class="comparison-title">为你推荐</div>
+            <div class="comparison-value" id="for-you-count">-</div>
+            <div class="comparison-sublabel">算法推荐推文</div>
+          </div>
+          <div class="comparison-card following">
+            <div class="comparison-title">正在关注</div>
+            <div class="comparison-value" id="following-count">-</div>
+            <div class="comparison-sublabel">时间顺序推文</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-value" id="total-recorded">-</div>
+          <div class="stat-label">总记录数</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="unique-tweets">-</div>
+          <div class="stat-label">不重复推文</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="total-time">-</div>
+          <div class="stat-label">总浏览时间</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="avg-session">-</div>
+          <div class="stat-label">平均会话</div>
+        </div>
+      </div>
+
+      <div class="section">
+        <h3>互动统计</h3>
+        <div class="interactions-grid">
+          <div class="interaction-item">
+            <span class="interaction-icon">❤️</span>
+            <span class="interaction-count" id="likes">0</span>
+          </div>
+          <div class="interaction-item">
+            <span class="interaction-icon">🔄</span>
+            <span class="interaction-count" id="retweets">0</span>
+          </div>
+          <div class="interaction-item">
+            <span class="interaction-icon">💬</span>
+            <span class="interaction-count" id="replies">0</span>
+          </div>
+          <div class="interaction-item">
+            <span class="interaction-icon">🔖</span>
+            <span class="interaction-count" id="bookmarks">0</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <h3>最常出现的作者</h3>
+        <div id="top-authors" class="authors-list">
+          <p class="empty-state">暂无数据</p>
+        </div>
+      </div>
+
+      <div class="section">
+        <h3>热门话题</h3>
+        <div id="top-hashtags" class="hashtags-list">
+          <p class="empty-state">暂无数据</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- 算法分析 -->
+    <div class="tab-content hidden" id="algorithm-tab">
+      <div class="section">
+        <h3>🎯 推广内容分析</h3>
+        <div class="promoted-analysis">
+          <div class="analysis-item">
+            <span class="analysis-label">推广占比</span>
+            <span class="analysis-value" id="promoted-percent">-</span>
+          </div>
+          <div class="analysis-item">
+            <span class="analysis-label">平均位置</span>
+            <span class="analysis-value" id="promoted-position">-</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <h3>📊 内容类型分布</h3>
+        <div class="content-types">
+          <div class="type-bar">
+            <div class="type-label">📝 纯文本</div>
+            <div class="type-progress">
+              <div class="progress-fill text" id="text-bar" style="width: 0%"></div>
+            </div>
+            <div class="type-count" id="text-count">0</div>
+          </div>
+          <div class="type-bar">
+            <div class="type-label">🖼️ 图片</div>
+            <div class="type-progress">
+              <div class="progress-fill image" id="image-bar" style="width: 0%"></div>
+            </div>
+            <div class="type-count" id="image-count">0</div>
+          </div>
+          <div class="type-bar">
+            <div class="type-label">🎥 视频</div>
+            <div class="type-progress">
+              <div class="progress-fill video" id="video-bar" style="width: 0%"></div>
+            </div>
+            <div class="type-count" id="video-count">0</div>
+          </div>
+          <div class="type-bar">
+            <div class="type-label">🔗 卡片</div>
+            <div class="type-progress">
+              <div class="progress-fill card" id="card-bar" style="width: 0%"></div>
+            </div>
+            <div class="type-count" id="card-count">0</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <h3>🔍 算法特征洞察</h3>
+        <ul class="feature-list" id="algorithm-features">
+          <li>正在收集数据...</li>
+        </ul>
+      </div>
+
+      <div class="section">
+        <h3>📈 数据概览</h3>
+        <div class="overview-grid">
+          <div class="overview-item">
+            <div class="overview-label">作者多样性</div>
+            <div class="overview-value" id="author-diversity">-</div>
+          </div>
+          <div class="overview-item">
+            <div class="overview-label">话题数量</div>
+            <div class="overview-value" id="hashtag-count">-</div>
+          </div>
+          <div class="overview-item">
+            <div class="overview-label">回复内容</div>
+            <div class="overview-value" id="reply-count">-</div>
+          </div>
+          <div class="overview-item">
+            <div class="overview-label">互动率</div>
+            <div class="overview-value" id="engagement-rate">-</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <footer>
+      <p>🔒 所有数据仅存储在本地 | <a href="#" id="clear-all">清除所有数据</a></p>
+    </footer>
+  </div>
+
+  <script src="sidepanel.js"></script>
+</body>
+</html>

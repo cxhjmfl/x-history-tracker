@@ -6,8 +6,14 @@ document.addEventListener('DOMContentLoaded', async function() {
   let endDate = null;
   let refreshInterval = null;
 
+  // 尝试注入内容脚本
+  await injectScriptIfNeeded();
+
   // 初始化标签页
   initTabs();
+
+  // 初始化侧边栏切换
+  initSidePanelToggle();
   
   // 初始化日期筛选
   initDateFilter();
@@ -17,6 +23,84 @@ document.addEventListener('DOMContentLoaded', async function() {
   
   // 启动自动刷新
   startAutoRefresh();
+
+  // 尝试注入内容脚本
+  async function injectScriptIfNeeded() {
+    try {
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      if (!tab) return;
+      
+      const isX = tab.url && (tab.url.includes('x.com') || tab.url.includes('twitter.com'));
+      if (!isX) return;
+      
+      console.log('[X记录器Popup] 尝试注入脚本到:', tab.url);
+      
+      // 发送消息给后台注入脚本
+      await chrome.runtime.sendMessage({
+        type: 'inject_script',
+        tabId: tab.id
+      });
+    } catch (e) {
+      console.log('[X记录器Popup] 注入脚本跳过:', e.message);
+    }
+  }
+
+  // 初始化侧边栏切换
+  function initSidePanelToggle() {
+    const openSidePanelBtn = document.getElementById('open-sidepanel');
+    if (openSidePanelBtn) {
+      openSidePanelBtn.addEventListener('click', async () => {
+        try {
+          // 获取当前窗口ID
+          const currentWindow = await chrome.windows.getCurrent();
+          
+          // 检查侧边栏是否已经打开
+          try {
+            // 尝试获取侧边栏状态
+            const panelWindow = await chrome.sidePanel.getOptions({ windowId: currentWindow.id });
+            console.log('[X记录器Popup] 当前侧边栏状态:', panelWindow);
+          } catch (panelErr) {
+            // 侧边栏可能未启用，继续尝试打开
+            console.log('[X记录器Popup] 检查侧边栏状态:', panelErr.message);
+          }
+          
+          // 打开侧边栏
+          await chrome.sidePanel.open({ windowId: currentWindow.id });
+          console.log('[X记录器Popup] 已打开侧边栏');
+          
+          // 关闭popup
+          window.close();
+        } catch (e) {
+          console.error('[X记录器Popup] 打开侧边栏失败:', e);
+          
+          // 检查是否是侧边栏已经打开的错误（chrome 的特殊错误信息）
+          if (e.message && (e.message.includes('No active side panel') || e.message.includes('already open'))) {
+            // 侧边栏已经打开了，直接关闭popup即可
+            console.log('[X记录器Popup] 侧边栏已经打开，关闭popup');
+            window.close();
+            return;
+          }
+          
+          // 检查扩展上下文是否已失效
+          if (e.message && e.message.includes('Extension context invalidated')) {
+            console.log('[X记录器Popup] 扩展已更新，请重新打开');
+            window.close();
+            return;
+          }
+          
+          // 提供更详细的错误信息
+          let errorMsg = '无法打开侧边栏';
+          if (e.message && e.message.includes('sidePanel')) {
+            errorMsg = '您的浏览器版本可能不支持侧边栏功能（需要 Chrome 114+）';
+          } else if (e.message) {
+            errorMsg = '错误: ' + e.message;
+          }
+          
+          alert(errorMsg + '\n\n替代方法：右键点击扩展图标 → 选择"打开侧边栏"');
+        }
+      });
+    }
+  }
 
   // 初始化标签页切换
   function initTabs() {

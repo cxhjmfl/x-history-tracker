@@ -60,6 +60,11 @@ async function handleMessage(message) {
       return await getTimelineAnalysis();
     case 'clear_data':
       return await clearData();
+    case 'inject_script':
+      if (message.tabId) {
+        await injectContentScript(message.tabId);
+      }
+      return { success: true };
     default:
       return { error: '未知类型: ' + message.type };
   }
@@ -342,6 +347,52 @@ async function clearData() {
   
   return { success: true };
 }
+
+// 程序化注入内容脚本
+async function injectContentScript(tabId) {
+  try {
+    // 检查是否已经注入
+    const results = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => window.__xRecorderInjected
+    });
+    
+    if (results && results[0] && results[0].result) {
+      console.log('[X记录器后台] 脚本已注入，跳过');
+      return;
+    }
+    
+    // 注入标记
+    await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => {
+        window.__xRecorderInjected = true;
+        console.log('[X记录器后台] 标记已设置');
+      }
+    });
+    
+    // 注入内容脚本
+    await chrome.scripting.executeScript({
+      target: { tabId },
+      files: ['content.js']
+    });
+    
+    console.log('[X记录器后台] 内容脚本已注入到标签页:', tabId);
+  } catch (err) {
+    console.error('[X记录器后台] 注入失败:', err);
+  }
+}
+
+// 监听标签页更新
+chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+  if (changeInfo.status === 'complete' && tab.url) {
+    if (tab.url.includes('x.com') || tab.url.includes('twitter.com')) {
+      console.log('[X记录器后台] 检测到X页面，准备注入脚本:', tab.url);
+      // 延迟一下确保页面稳定
+      setTimeout(() => injectContentScript(tabId), 1000);
+    }
+  }
+});
 
 // 清理过期会话
 setInterval(() => {

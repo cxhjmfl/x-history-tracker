@@ -31,11 +31,39 @@ header {
   border-bottom: 1px solid #2f3336;
 }
 
+.header-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
 header h1 {
   font-size: 16px;
   font-weight: 700;
   color: #e7e9ea;
-  margin-bottom: 4px;
+  flex: 1;
+  text-align: center;
+}
+
+.view-toggle-btn {
+  background: #2f3336;
+  border: none;
+  color: #e7e9ea;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.view-toggle-btn:hover {
+  background: #1d9bf0;
+  transform: scale(1.05);
 }
 
 .subtitle {
